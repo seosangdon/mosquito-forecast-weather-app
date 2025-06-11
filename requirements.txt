@@ -1,0 +1,7 @@
+# requirements.txt
+streamlit
+pandas
+requests
+scikit-learn
+xgboost
+joblib
