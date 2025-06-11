@@ -182,8 +182,8 @@ def load_models():
     try:
         # ※※※ 중요: 모델 파일의 경로를 실제 환경에 맞게 수정해주세요. ※※※
         # 예: model_rf = joblib.load("models/random_forest_model.pkl")
-        model_rf = joblib.load(r"C:\Users\itwill\Downloads\random_forest_model.pkl")
-        model_xgb = joblib.load(r"C:\Users\itwill\Downloads\xgboost_model.pkl")
+        model_rf = joblib.load("random_forest_model.pkl")
+        model_xgb = joblib.load("xgboost_model.pkl")
         return model_rf, model_xgb
     except FileNotFoundError:
         return None, None
