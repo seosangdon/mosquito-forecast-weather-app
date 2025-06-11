@@ -5,7 +5,7 @@ from collections import defaultdict
 import json
 import pandas as pd
 import joblib
-from zoneinfo import ZoneInfo # 이 줄이 상단에 추가되었는지 확인하세요.
+
 # --- 페이지 기본 설정 ---
 st.set_page_config(
     page_title="서울 날씨 & 모기 지수",
@@ -19,125 +19,154 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
 
-    /* --- 기본 스타일 --- */
+    /* 전체 배경 및 폰트 설정 */
     .stApp {
         background: linear-gradient(135deg, #1a1a3a 0%, #0f0c29 100%);
         font-family: 'Nanum Gothic', sans-serif;
     }
+
+    /* 기본 컨테이너 (너비 조정) */
     .main-container {
-        max-width: 1100px;
+        max-width: 1100px; /* 너비 축소 */
         margin: 0 auto;
-        padding: 1.5rem;
+        padding: 1.5rem; /* 패딩 약간 축소 */
     }
+
+    /* 타이틀 스타일 (폰트 크기 조정) */
     .main-title {
-        text-align: center; font-size: 3.2rem; font-weight: 800;
+        text-align: center; font-size: 3.2rem; font-weight: 800; /* 폰트 크기 축소 */
         margin-bottom: 0.5rem; letter-spacing: -2px;
         background: linear-gradient(90deg, #89f7fe, #66a6ff, #a1c4fd);
-        -webkit-background-clip: text; background-clip: text; color: transparent;
+        -webkit-background-clip: text; background-clip: text;
+        color: transparent;
         text-shadow: 0 0 5px rgba(174, 214, 241, 0.5), 0 0 15px rgba(137, 247, 254, 0.5), 0 0 30px rgba(102, 166, 255, 0.4);
     }
     .sub-title {
-        text-align: center; font-size: 1.2rem; margin-bottom: 2.5rem; font-weight: 400;
+        text-align: center; font-size: 1.2rem; margin-bottom: 2.5rem; font-weight: 400; /* 폰트/마진 축소 */
         color: rgba(255,255,255,0.85);
         text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
     }
+
+    /* 카드 공통 스타일 (리퀴드 글래스) (패딩, 그림자 조정) */
     .liquid-card {
         background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.3), transparent 40%),
                     linear-gradient(to right bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 30px; /* 테두리 반경 축소 */
+        border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        padding: 1.8rem; margin: 1rem 0;
-        height: 100%; /* [추가] Grid 레이아웃의 높이를 맞추기 위함 */
-        display: flex; flex-direction: column; justify-content: center;
+        transition: transform 0.4s ease, box-shadow 0.4s ease;
+        padding: 1.8rem; /* 패딩 축소 */
+        margin: 1rem 0;
     }
-    .current-weather, .mosquito-card {
-        min-height: 350px; text-align: center;
+    .liquid-card:hover {
+        transform: translateY(-8px) scale(1.01); /* 호버 효과 미세 조정 */
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        border-color: rgba(255, 255, 255, 0.4);
     }
-    .current-weather-icon { width: 110px; height: 110px; margin-bottom: 0.8rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
-    .current-temp { font-size: 4.5rem; font-weight: 800; color: white; text-shadow: 0 0 20px rgba(0,0,0,0.5); line-height: 1; }
-    .current-condition { font-size: 1.6rem; color: rgba(255,255,255,0.95); font-weight: 700; margin-top: 0.8rem; }
-    .current-time { font-size: 0.9rem; color: rgba(255,255,255,0.8); position: absolute; top: 20px; right: 25px; }
 
-    /* --- [신규/수정] 반응형 레이아웃 --- */
-    .main-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
+    /* 현재 날씨 카드 (크기 및 폰트 조정) */
+    .current-weather {
+        min-height: 350px; /* 최소 높이 축소 */
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: center; position: relative;
     }
-    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-    .detail-item {
+    .current-weather-icon { width: 110px; height: 110px; margin-bottom: 0.8rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); } /* 아이콘 크기 축소 */
+    .current-temp { font-size: 4.5rem; font-weight: 800; color: white; text-shadow: 0 0 20px rgba(0,0,0,0.5); line-height: 1; } /* 폰트 크기 축소 */
+    .current-condition { font-size: 1.6rem; color: rgba(255,255,255,0.95); font-weight: 700; margin-top: 0.8rem; } /* 폰트 크기 축소 */
+    .current-time { font-size: 0.9rem; color: rgba(255,255,255,0.8); position: absolute; top: 20px; right: 25px; } /* 폰트 크기 축소 */
+
+    /* 상세 정보 (간격 및 폰트 조정) */
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.2rem; margin-top: 1.5rem; } /* 간격, 마진 축소 */
+    .detail-item, .forecast-card {
         background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.2), transparent 50%),
                     linear-gradient(to right bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 25px; /* 테두리 반경 축소 */
+        border: 1px solid rgba(255, 255, 255, 0.15);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-        padding: 1.2rem; text-align: center;
+        padding: 1.2rem; /* 패딩 축소 */
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    .detail-icon-svg { width: 2rem; height: 2rem; filter: invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3)); margin-bottom: 0.4rem; }
-    .detail-label { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 0.4rem; }
-    .detail-value { color: white; font-size: 1.3rem; font-weight: 700; }
+    .detail-item:hover, .forecast-card:hover { transform: translateY(-6px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); border-color: rgba(255, 255, 255, 0.3); } /* 호버 효과 조정 */
+    .forecast-card { padding: 1.2rem 0.8rem; height: 100%; } /* 패딩 축소 */
+    .detail-icon { font-size: 2.2rem; margin-bottom: 0.4rem; } /* 아이콘 크기/마진 축소 */
+    .detail-label { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 0.4rem; } /* 폰트 크기/마진 축소 */
+    .detail-value { color: white; font-size: 1.4rem; font-weight: 700; } /* 폰트 크기 축소 */
+
+    /* 시간별 예보 (크기 및 폰트 조정) */
+    .forecast-time { color: rgba(255,255,255,0.9); font-size: 1.1rem; font-weight: 700; margin-bottom: 0.8rem; } /* 폰트 크기/마진 축소 */
+    .forecast-icon { width: 45px; height: 45px; margin: 0.4rem 0; } /* 아이콘 크기/마진 축소 */
+    .forecast-temp { color: white; font-size: 1.4rem; font-weight: 700; } /* 폰트 크기 축소 */
+    .forecast-condition { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 0.4rem; } /* 폰트 크기/마진 축소 */
     
-    /* 시간별 예보: 가로 스크롤 컨테이너 */
-    .hourly-scroll-container {
+    /* [수정됨] 모기 지수 카드 스타일 (4단계) */
+    .mosquito-card {
+        padding: 1.8rem 2rem;
+        text-align: center;
+        min-height: 350px; 
         display: flex;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
-        scrollbar-width: none; /* Firefox 스크롤바 숨김 */
-        padding: 1rem 0;
+        flex-direction: column;
+        justify-content: center;
     }
-    .hourly-scroll-container::-webkit-scrollbar { display: none; /* Chrome, Safari 스크롤바 숨김 */ }
-    .forecast-card {
-        flex: 0 0 110px; /* 아이템이 줄어들지 않고 고정 너비 가짐 */
-        background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.2), transparent 50%),
-                    linear-gradient(to right bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-        padding: 1.2rem 0.8rem;
-        text-align: center; margin-right: 1rem;
-    }
-    .forecast-time { color: rgba(255,255,255,0.9); font-size: 1.1rem; font-weight: 700; margin-bottom: 0.8rem; }
-    .forecast-icon { width: 45px; height: 45px; margin: 0.4rem 0; }
-    .forecast-temp { color: white; font-size: 1.4rem; font-weight: 700; }
-    .forecast-condition { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 0.4rem; }
-
-    /* 모기 지수 */
+    /* 1단계: 쾌적 */
     .mosquito-good { border-color: #66a6ff; } 
+    /* 2단계: 관심 */
     .mosquito-watch { border-color: #fdd835; } 
+    /* 3단계: 주의 (새로 추가) */
     .mosquito-caution { border-color: #fb8c00; }
+    /* 4단계: 불쾌 */
     .mosquito-bad { border-color: #d81b60; }
-    .mosquito-title { font-size: 1.2rem; font-weight: 700; color: rgba(255, 255, 255, 0.8); margin-bottom: 0.8rem; }
-    .mosquito-value { font-size: 2.5rem; font-weight: 800; color: white; line-height: 1.2; }
-    .mosquito-desc { font-size: 1rem; color: rgba(255, 255, 255, 0.9); margin-top: 0.8rem; }
-    .mosquito-title-icon-svg { width: 1.5rem; height: 1.5rem; margin-right: 0.5rem; vertical-align: -0.25rem; filter: invert(1); }
-    .mosquito-level-icon-svg { width: 2.3rem; height: 2.3rem; filter: invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3)); margin-left: 0.5rem; vertical-align: -0.5rem; }
+
+    .mosquito-title {
+        font-size: 1.2rem; font-weight: 700;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0.8rem;
+    }
+    .mosquito-value {
+        font-size: 2.5rem; font-weight: 800;
+        color: white; line-height: 1.2;
+    }
+    .mosquito-desc {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 0.8rem;
+    }
+    .detail-icon-svg, .mosquito-title-icon-svg {
+        width: 2.2rem;
+        height: 2.2rem;
+        filter: invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3)); /* 흰색으로 만들고 그림자 효과 */
+        margin-bottom: 0.4rem;
+    }
+    .mosquito-title-icon-svg {
+        width: 1.5rem; /* 타이틀 옆 아이콘은 약간 작게 */
+        height: 1.5rem;
+        margin-right: 0.5rem;
+        vertical-align: -0.25rem; /* 텍스트와 세로 정렬 */
+        }
+    .mosquito-level-icon-svg {
+    width: 2.3rem; /* 단계 텍스트와 어울리는 크기 */
+        height: 2.3rem;
+        filter: invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3)); /* 흰색 아이콘, 그림자 효과 */
+        margin-left: 0.5rem;
+        vertical-align: -0.5rem; /* 큰 텍스트 옆에서 세로 중앙 정렬 */
+        }
 
     /* 에러 메시지 */
-    .error-message { background: rgba(255, 87, 87, 0.2); border-radius: 20px; padding: 1rem; color: white; text-align: center; margin: 1rem 0; border: 1px solid rgba(255, 87, 87, 0.3); backdrop-filter: blur(10px); }
-    .stDeployButton, footer, .stApp > header { visibility: hidden; }
-
-    /* --- 📱 모바일 반응형 스타일 (화면 너비 768px 이하) --- */
-    @media (max-width: 768px) {
-        .main-container { padding: 1rem; }
-        .main-title { font-size: 2.5rem; }
-        .sub-title { font-size: 1rem; margin-bottom: 1.5rem; }
-        
-        /* 메인 그리드: 2열 -> 1열로 변경 */
-        .main-grid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-        .current-weather, .mosquito-card { min-height: 280px; }
-        .current-temp { font-size: 4rem; }
-        .mosquito-value { font-size: 2rem; }
-        .liquid-card { padding: 1.5rem; }
+    .error-message {
+        background: rgba(255, 87, 87, 0.2); border-radius: 20px; padding: 1rem; color: white;
+        text-align: center; margin: 1rem 0; border: 1px solid rgba(255, 87, 87, 0.3);
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     }
+    /* Streamlit 기본 요소 숨기기 */
+    .stDeployButton, footer, .stApp > header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- API 및 날씨 정보 설정 ---
 # ※※※ 중요: 본인의 공공데이터포털 일반 인증키(Decoding)로 교체하세요 ※※※
+# st.secrets를 통해 API 키 안전하게 불러오기
 API_KEY = st.secrets["API_KEY"]
 SEOUL_NX = 60
 SEOUL_NY = 127
@@ -261,92 +290,15 @@ def get_daily_forecast_for_model(nx, ny):
     }
     return {'success': True, 'data': model_features}
 
-# --- 메인 앱 실행 (반응형으로 재구성) ---
-
-def generate_weather_card_html(live_result, ultra_short_result):
-    """현재 날씨 카드 HTML 생성"""
-    if not (live_result['success'] and live_result['data']):
-        return f"<div class='error-message'>❌ 실시간 관측 정보 없음: {live_result.get('error', '알 수 없는 오류')}</div>"
-
-    current_weather = live_result['data']
-    pty_code = current_weather.get('PTY', '0')
-    sky_code = current_weather.get('SKY', '1')
-
-    if pty_code != '0':
-        weather_icon = PTY_ICONS.get(pty_code)
-        weather_text = PTY_DICT.get(pty_code)
-    else:
-        if ultra_short_result['success'] and ultra_short_result['data']:
-            first_forecast_time = sorted(ultra_short_result['data'].keys())[0]
-            sky_code = ultra_short_result['data'][first_forecast_time].get('SKY', sky_code)
-        weather_icon = SKY_ICONS.get(sky_code)
-        weather_text = SKY_DICT.get(sky_code, '정보 없음')
-    
-    return f"""
-    <div class="liquid-card current-weather" style="position: relative;">
-        <div class="current-time">{datetime.now(ZoneInfo("Asia/Seoul")).strftime('%Y-%m-%d %H:%M')} 기준</div>
-        <img src="{weather_icon}" class="current-weather-icon" alt="{weather_text}">
-        <div class="current-temp">{current_weather.get('T1H', '--')}°</div>
-        <div class="current-condition">{weather_text}</div>
-    </div>
-    """
-
-def generate_mosquito_card_html(model_data_result, model_rf, model_xgb):
-    """모기 지수 카드 HTML 생성"""
-    if not model_data_result['success']:
-        return f"<div class='error-message'>❌ 모기 지수 데이터 없음: {model_data_result.get('error', '알 수 없는 오류')}</div>"
-
-    features = model_data_result['data']
-    now = datetime.now(ZoneInfo("Asia/Seoul"))
-    
-    input_data = pd.DataFrame([[
-        features['avg_temp'], features['rainfall'], features['humidity'],
-        features['wind_speed'], 15.0, now.year, now.month 
-    ]], columns=['평균기온(°C)', '일강수량(mm)', '평균 상대습도(%)', '평균 풍속(m/s)', '합계 일사량(MJ/m2)', 'year', 'month'])
-
-    try:
-        pred_rf = model_rf.predict(input_data)[0]
-        pred_xgb = model_xgb.predict(input_data)[0]
-        final_pred = (pred_rf + pred_xgb) / 2
-
-        mosquito_icon_url = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/bug-outline.svg"
-        icon_url_good = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/happy-outline.svg"
-        icon_url_watch = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/eye-outline.svg"
-        icon_url_caution = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/warning-outline.svg"
-        icon_url_bad = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/skull-outline.svg"
-
-        if final_pred <= 250:
-            level, desc, color_class, icon_tag = "쾌적", "모기 활동이 거의 없어요.", "mosquito-good", f'<img src="{icon_url_good}" class="mosquito-level-icon-svg">'
-        elif final_pred <= 500:
-            level, desc, color_class, icon_tag = "관심", "모기 활동이 시작될 수 있어요.", "mosquito-watch", f'<img src="{icon_url_watch}" class="mosquito-level-icon-svg">'
-        elif final_pred <= 750:
-            level, desc, color_class, icon_tag = "주의", "모기 활동이 자주 관찰돼요.", "mosquito-caution", f'<img src="{icon_url_caution}" class="mosquito-level-icon-svg">'
-        else:
-            level, desc, color_class, icon_tag = "불쾌", "모기 활동이 매우 활발해요!", "mosquito-bad", f'<img src="{icon_url_bad}" class="mosquito-level-icon-svg">'
-        
-        return f"""
-        <div class="liquid-card mosquito-card {color_class}">
-            <div class="mosquito-title">
-                <img src="{mosquito_icon_url}" class="mosquito-title-icon-svg">오늘의 모기 활동 지수 (AI 예측)
-            </div>
-            <div class="mosquito-value">{level} {icon_tag}</div>
-            <div class="mosquito-desc">{desc}<br>(예측 지수: {final_pred:.1f})</div>
-        </div>
-        """
-    except Exception as e:
-        return f"<div class='error-message'>- 모기 지수 예측 실패: {e} -</div>"
-
+# --- 메인 앱 실행 ---
 def main():
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
     st.markdown('<h1 class="main-title">🌤️ 서울 날씨 & 모기 지수</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-title">실시간 날씨와 AI가 예측한 모기 활동 지수를 확인하세요.</p>', unsafe_allow_html=True)
 
-    # --- 데이터 로딩 ---
-    # (API 키는 st.secrets 또는 다른 방식으로 안전하게 관리한다고 가정)
-    # API_KEY = st.secrets["API_KEY"] 
     model_rf, model_xgb = load_models()
     if not model_rf or not model_xgb:
-        st.error("오류: 모기 예측 모델 파일을 찾을 수 없습니다.")
+        st.error("오류: 모기 예측 모델 파일(random_forest_model.pkl, xgboost_model.pkl)을 찾을 수 없습니다. 파일 경로를 확인해주세요.")
         st.markdown('</div>', unsafe_allow_html=True)
         return
 
@@ -354,17 +306,98 @@ def main():
     ultra_short_result = get_ultra_short_term_forecast(SEOUL_NX, SEOUL_NY)
     short_term_result = get_short_term_forecast(SEOUL_NX, SEOUL_NY)
     model_data_result = get_daily_forecast_for_model(SEOUL_NX, SEOUL_NY)
+    
+    col1, col2 = st.columns(2)
 
-    # --- 메인 카드 섹션 (날씨 & 모기) ---
-    weather_html = generate_weather_card_html(live_result, ultra_short_result)
-    mosquito_html = generate_mosquito_card_html(model_data_result, model_rf, model_xgb)
-    st.markdown(f'<div class="main-grid">{weather_html}{mosquito_html}</div>', unsafe_allow_html=True)
+    with col1:
+        # --- 현재 날씨 카드 ---
+        if live_result['success'] and live_result['data']:
+            current_weather = live_result['data']
+            pty_code = current_weather.get('PTY', '0')
+            sky_code = current_weather.get('SKY', '1')
 
-    # --- 상세 정보 섹션 ---
+            if pty_code != '0':
+                weather_icon = PTY_ICONS.get(pty_code)
+                weather_text = PTY_DICT.get(pty_code)
+            else:
+                # 초단기예보에서 현재 하늘 상태 가져오기 (실시간 관측에 SKY가 없을 경우 대비)
+                if ultra_short_result['success'] and ultra_short_result['data']:
+                    first_forecast_time = sorted(ultra_short_result['data'].keys())[0]
+                    sky_code = ultra_short_result['data'][first_forecast_time].get('SKY', sky_code) # 현재 관측값 우선
+                weather_icon = SKY_ICONS.get(sky_code)
+                weather_text = SKY_DICT.get(sky_code, '정보 없음')
+            
+            st.markdown(f"""
+            <div class="liquid-card current-weather">
+                <div class="current-time">{datetime.now().strftime('%Y-%m-%d %H:%M')} 기준</div>
+                <img src="{weather_icon}" class="current-weather-icon" alt="{weather_text}">
+                <div class="current-temp">{current_weather.get('T1H', '--')}°</div>
+                <div class="current-condition">{weather_text}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='error-message'>❌ 실시간 관측 정보를 가져올 수 없습니다: {live_result.get('error', '알 수 없는 오류')}</div>", unsafe_allow_html=True)
+            current_weather = {}
+
+    with col2:
+        # --- 모기 지수 예측 및 시각화 ---
+        if model_data_result['success']:
+            features = model_data_result['data']
+            now = datetime.now(ZoneInfo("Asia/Seoul"))
+            
+            # 일사량은 예측에 큰 영향을 주지 않을 수 있으므로, 고정값 또는 평균값으로 대체
+            # 여기서는 여름철 평균적인 값(15.0)을 가정하여 사용
+            input_data = pd.DataFrame([[
+                features['avg_temp'], features['rainfall'], features['humidity'],
+                features['wind_speed'], 15.0, now.year, now.month 
+            ]], columns=['평균기온(°C)', '일강수량(mm)', '평균 상대습도(%)', '평균 풍속(m/s)', '합계 일사량(MJ/m2)', 'year', 'month'])
+
+            try:
+                pred_rf = model_rf.predict(input_data)[0]
+                pred_xgb = model_xgb.predict(input_data)[0]
+                final_pred = (pred_rf + pred_xgb) / 2
+
+                # --- [수정됨] 단계별 SVG 아이콘 URL 정의 ---
+                mosquito_icon_url = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/bug-outline.svg"
+                icon_url_good = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/happy-outline.svg"
+                icon_url_watch = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/eye-outline.svg"
+                icon_url_caution = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/warning-outline.svg"
+                icon_url_bad = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/skull-outline.svg"
+                
+                # --- [수정됨] 모기 지수 4단계 분류 및 아이콘 태그 할당 ---
+                if final_pred <= 25:
+                    level, desc, color_class = "쾌적", "모기 활동이 거의 없어요.", "mosquito-good"
+                    icon_tag = f'<img src="{icon_url_good}" class="mosquito-level-icon-svg">'
+                elif final_pred <= 50:
+                    level, desc, color_class = "관심", "모기 활동이 시작될 수 있어요.", "mosquito-watch"
+                    icon_tag = f'<img src="{icon_url_watch}" class="mosquito-level-icon-svg">'
+                elif final_pred <= 75:
+                    level, desc, color_class = "주의", "모기 활동이 자주 관찰돼요.", "mosquito-caution"
+                    icon_tag = f'<img src="{icon_url_caution}" class="mosquito-level-icon-svg">'
+                else:
+                    level, desc, color_class = "불쾌", "모기 활동이 매우 활발해요!", "mosquito-bad"
+                    icon_tag = f'<img src="{icon_url_bad}" class="mosquito-level-icon-svg">'
+                
+                st.markdown(f"""
+                <div class="liquid-card mosquito-card {color_class}">
+                    <div class="mosquito-title">
+                        <img src="{mosquito_icon_url}" class="mosquito-title-icon-svg">
+                        오늘의 모기 활동 지수 (AI 예측)
+                    </div>
+                    <div class="mosquito-value">{level} {icon_tag}</div>
+                    <div class="mosquito-desc">{desc}<br>(예측 지수: {final_pred:.1f})</div>
+                </div>
+                """, unsafe_allow_html=True)
+            except Exception as e:
+                st.warning(f"모기 지수 예측에 실패했습니다: {e}")
+        else:
+            st.markdown(f"<div class='error-message'>❌ 모기 지수 예측 데이터를 가져올 수 없습니다: {model_data_result.get('error', '알 수 없는 오류')}</div>", unsafe_allow_html=True)
+
+    # --- 상세 정보 (아이콘 교체) ---
     tmn = short_term_result['data'].get('TMN', '--') if short_term_result.get('success') else '--'
     tmx = short_term_result['data'].get('TMX', '--') if short_term_result.get('success') else '--'
-    current_weather = live_result.get('data', {})
-    
+
+    # SVG 아이콘 URL 정의
     icon_temp = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/thermometer-outline.svg"
     icon_humidity = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/water-outline.svg"
     icon_wind = "https://cdn.jsdelivr.net/gh/ionic-team/ionicons@5.5.2/src/svg/flag-outline.svg"
@@ -372,45 +405,36 @@ def main():
 
     st.markdown(f"""
     <div class="detail-grid">
-        <div class="detail-item"><img src="{icon_temp}" class="detail-icon-svg"><div class="detail-label">오늘 최고/최저</div><div class="detail-value">{tmx}° / {tmn}°</div></div>
-        <div class="detail-item"><img src="{icon_humidity}" class="detail-icon-svg"><div class="detail-label">습도</div><div class="detail-value">{current_weather.get('REH', '--')}%</div></div>
-        <div class="detail-item"><img src="{icon_wind}" class="detail-icon-svg"><div class="detail-label">풍속</div><div class="detail-value">{current_weather.get('WSD', '--')} m/s</div></div>
-        <div class="detail-item"><img src="{icon_rain}" class="detail-icon-svg"><div class="detail-label">1시간 강수량</div><div class="detail-value">{current_weather.get('RN1', '0')} mm</div></div>
+        <div class="detail-item">
+            <div class="detail-icon">
+                <img src="{icon_temp}" class="detail-icon-svg">
+            </div>
+            <div class="detail-label">오늘 최고/최저</div>
+            <div class="detail-value">{tmx}° / {tmn}°</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-icon">
+                <img src="{icon_humidity}" class="detail-icon-svg">
+            </div>
+            <div class="detail-label">습도</div>
+            <div class="detail-value">{current_weather.get('REH', '--')}%</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-icon">
+                <img src="{icon_wind}" class="detail-icon-svg">
+            </div>
+            <div class="detail-label">풍속</div>
+            <div class="detail-value">{current_weather.get('WSD', '--')} m/s</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-icon">
+                <img src="{icon_rain}" class="detail-icon-svg">
+            </div>
+            <div class="detail-label">1시간 강수량</div>
+            <div class="detail-value">{current_weather.get('RN1', '0')} mm</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
-
-    # --- 시간별 예보 섹션 ---
-    st.markdown("<h3 style='color: white; text-align: center; margin: 3rem 0 0 0; font-weight: 700;'>시간별 예보</h3>", unsafe_allow_html=True)
-    if ultra_short_result['success'] and ultra_short_result['data']:
-        forecast_html_items = []
-        forecast_times = sorted(list(ultra_short_result['data'].keys()))[:6]
-        for time in forecast_times:
-            weather = ultra_short_result['data'][time]
-            f_pty_code, f_sky_code = weather.get('PTY', '0'), weather.get('SKY', '1')
-            f_icon, f_text = (PTY_ICONS.get(f_pty_code), PTY_DICT.get(f_pty_code)) if f_pty_code != '0' else (SKY_ICONS.get(f_sky_code), SKY_DICT.get(f_sky_code, '정보 없음'))
-            
-            forecast_html_items.append(f"""
-            <div class="forecast-card">
-                <div class="forecast-time">{time[:2]}:00</div>
-                <img src="{f_icon}" class="forecast-icon" alt="{f_text}">
-                <div class="forecast-temp">{weather.get('T1H', '--')}°</div>
-                <div class="forecast-condition">{f_text}</div>
-            </div>""")
-        
-        st.markdown(f'<div class="hourly-scroll-container">{"".join(forecast_html_items)}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='error-message'>❌ 시간별 예보 정보를 가져올 수 없습니다: {ultra_short_result.get('error', '알 수 없는 오류')}</div>", unsafe_allow_html=True)
-
-    # --- 업데이트 정보 ---
-    st.markdown(f"""
-    <div style="text-align: center; color: rgba(255,255,255,0.6); margin-top: 3rem; font-size: 0.8rem;">
-        실시간 관측 발표: {live_result.get('base_time', 'N/A')} | 
-        시간별 예보 발표: {ultra_short_result.get('base_time', 'N/A')} | 
-        종합 예보 발표: {short_term_result.get('base_time', 'N/A')}
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- 시간별 예보 ---
     if ultra_short_result['success'] and ultra_short_result['data']:
