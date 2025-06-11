@@ -5,7 +5,7 @@ from collections import defaultdict
 import json
 import pandas as pd
 import joblib
-
+from zoneinfo import ZoneInfo # 이 줄이 상단에 추가되었는지 확인하세요.
 # --- 페이지 기본 설정 ---
 st.set_page_config(
     page_title="서울 날씨 & 모기 지수",
