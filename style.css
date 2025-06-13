@@ -2,8 +2,33 @@
 
 /* 전체 배경 및 폰트 설정 */
 .stApp {
-    background: linear-gradient(135deg, #1a1a3a 0%, #0f0c29 100%);
+    /* [수정] 여러 개의 배경을 겹쳐서 사용 */
+    background:
+        /* 2. 상단 광원 효과 (두 개의 원형 그라데이션) */
+        radial-gradient(circle at 15% 25%, rgba(137, 247, 254, 0.15), transparent 35%),
+        radial-gradient(circle at 85% 75%, rgba(102, 166, 255, 0.15), transparent 40%),
+        
+        /* 1. 베이스가 되는 움직이는 그라데이션 */
+        linear-gradient(135deg, #2c3e50, #0f0c29, #483d8b);
+
+    /* [수정] 움직이는 애니메이션 적용 */
+    background-size: 100% 100%, 100% 100%, 400% 400%;
+    animation: gradientAnimation 20s ease infinite;
+
     font-family: 'Nanum Gothic', sans-serif;
+}
+
+/* --- [신규] 배경 그라데이션 애니메이션 --- */
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 /* 기본 컨테이너 (너비 조정) */
@@ -142,3 +167,55 @@ width: 2.3rem; /* 단계 텍스트와 어울리는 크기 */
 }
 /* Streamlit 기본 요소 숨기기 */
 .stDeployButton, footer, .stApp > header { visibility: hidden; }
+
+/* --- [최종 수정] 탭 디자인 커스텀 --- */
+
+/* 탭 바의 기본 밑줄과 배경을 완전히 제거하여 독립된 버튼처럼 보이게 함 */
+div[data-testid="stTabs"] {
+    border-bottom: none !important;
+    background: none !important;
+    padding-top: 1rem;
+}
+
+/* 모든 탭 버튼에 '리퀴드 글래스 카드' 스타일을 동일하게 적용 */
+button[data-testid="stTab"] {
+    /* 보내주신 '리퀴드 글래스' 핵심 스타일 */
+    background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.2), transparent 40%),
+                linear-gradient(to right bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+    /* 탭 버튼에 맞게 크기와 모양 조정 */
+    border-radius: 20px;
+    padding: 0.8rem 1.8rem;
+    margin: 0 10px 10px 0;
+    transition: all 0.3s ease;
+    
+    /* 비활성 탭의 텍스트 스타일 */
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+}
+
+/* 탭 버튼에 마우스를 올렸을 때의 효과 */
+button[data-testid="stTab"]:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    color: white;
+}
+
+/* '활성화된' 탭을 위한 스타일 */
+button[data-testid="stTab"][aria-selected="true"] {
+    /* 텍스트를 선명하게 */
+    color: white;
+    font-weight: 700;
+
+    /* '선택됨'을 알리는 은은한 광선 효과 */
+    border-color: rgba(137, 247, 254, 0.7);
+    box-shadow: 0 0 1px rgba(137, 247, 254, 0.4), 0 0 2px rgba(174, 214, 241, 0.5);
+}
+
+/* --- [추가] 활성화된 탭의 파란색 밑줄 제거 --- */
+div[data-baseweb="tab-highlight"] {
+    display: none !important;
+}
