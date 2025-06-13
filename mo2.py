@@ -6,7 +6,7 @@ import json
 import pandas as pd
 import joblib
 from streamlit import _config
-
+from zoneinfo import ZoneInfo
 # --- 페이지 기본 설정 ---
 st.set_page_config(
     page_title="서울 날씨 & 모기 지수",
