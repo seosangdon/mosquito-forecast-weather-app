@@ -61,7 +61,7 @@ def api_call(url, params):
 @st.cache_data(ttl=600)
 def get_live_observation(nx, ny):
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst"
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Seoul"))
     target_time = now - timedelta(minutes=45)
     base_date = target_time.strftime('%Y%m%d')
     base_time = target_time.strftime('%H00')
@@ -77,7 +77,7 @@ def get_live_observation(nx, ny):
 @st.cache_data(ttl=600)
 def get_ultra_short_term_forecast(nx, ny):
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Seoul"))
     target_time = now - timedelta(minutes=45)
     base_date = target_time.strftime('%Y%m%d')
     base_time = target_time.strftime('%H30')
@@ -95,7 +95,7 @@ def get_ultra_short_term_forecast(nx, ny):
 @st.cache_data(ttl=1800)
 def get_short_term_forecast(nx, ny):
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Seoul"))
     base_date = now.strftime("%Y%m%d")
     if now.hour < 2 or (now.hour == 2 and now.minute < 45):
         base_date = (now - timedelta(days=1)).strftime("%Y%m%d")
@@ -103,7 +103,7 @@ def get_short_term_forecast(nx, ny):
     result = api_call(url, params)
     if result['success']:
         items = result['data'].get('body', {}).get('items', {}).get('item', [])
-        today_str = datetime.now().strftime('%Y%m%d')
+        today_str = datetime.now(ZoneInfo("Asia/Seoul")).strftime('%Y%m%d')
         daily_data = {}
         for item in items:
             if item['category'] == 'TMX' and item['fcstDate'] == today_str:
@@ -120,7 +120,7 @@ def get_short_term_forecast(nx, ny):
 @st.cache_data(ttl=1800)
 def get_daily_forecast_for_model(nx, ny):
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Asia/Seoul"))
     base_date = (now - timedelta(days=1)).strftime("%Y%m%d") if now.hour < 3 else now.strftime("%Y%m%d")
     base_time = "2300" if now.hour < 3 else "0200"
     params = {"serviceKey": API_KEY, "numOfRows": 1000, "pageNo": 1, "dataType": "JSON", "base_date": base_date, "base_time": base_time, "nx": nx, "ny": ny}
@@ -189,7 +189,7 @@ def main():
                 
                 st.markdown(f"""
                 <div class="liquid-card current-weather">
-                    <div class="current-time">{datetime.now().strftime('%Y-%m-%d %H:%M')} 기준</div>
+                    <div class="current-time">{datetime.now(ZoneInfo("Asia/Seoul")).strftime('%Y-%m-%d %H:%M')} 기준</div>
                     <img src="{weather_icon}" class="current-weather-icon" alt="{weather_text}">
                     <div class="current-temp">{current_weather.get('T1H', '--')}°</div>
                     <div class="current-condition">{weather_text}</div>
@@ -203,7 +203,7 @@ def main():
             # --- 모기 지수 예측 및 시각화 ---
             if model_data_result['success']:
                 features = model_data_result['data']
-                now = datetime.now()
+                now = datetime.now(ZoneInfo("Asia/Seoul"))
                 
                 # 일사량은 예측에 큰 영향을 주지 않을 수 있으므로, 고정값 또는 평균값으로 대체
                 # 여기서는 여름철 평균적인 값(15.0)을 가정하여 사용
